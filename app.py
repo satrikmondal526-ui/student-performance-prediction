@@ -1,4 +1,4 @@
-
+import os
 import streamlit as st
 import pandas as pd
 from main import StudentMLPipeline
@@ -60,6 +60,7 @@ st.markdown("""
 # LOAD TRAINED MODEL
 # --------------------------------
 
+
 @st.cache_resource
 def load_model():
 
@@ -68,9 +69,24 @@ def load_model():
         model_path="models/student_model.pkl"
     )
 
-    pipeline.load_model()
+    if os.path.exists("models/student_model.pkl"):
+
+        pipeline.load_model()
+
+    else:
+
+        st.info("Training machine learning model...")
+
+        data = pipeline.load_data()
+
+        pipeline.preprocess_data(data)
+
+        pipeline.train_model()
+
+        pipeline.save_model()
 
     return pipeline
+
 
 
 # --------------------------------
