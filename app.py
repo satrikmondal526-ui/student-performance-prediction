@@ -1,8 +1,137 @@
+import sqlite3
+from datetime import datetime
+import pandas as pd
+import os
 from datetime import datetime
 import os
 import streamlit as st
 import pandas as pd
 from main import StudentMLPipeline
+
+
+# --------------------------------
+# SQLITE DATABASE CONFIGURATION
+# --------------------------------
+
+DB_PATH = "predictions.db"
+
+
+# 1. Create Database and Table
+
+def init_database():
+
+    conn = sqlite3.connect(DB_PATH)
+
+    cursor = conn.cursor()
+
+    cursor.execute("""
+        CREATE TABLE IF NOT EXISTS predictions (
+
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+
+            prediction_date TEXT,
+
+            studytime INTEGER,
+
+            failures INTEGER,
+
+            absences INTEGER,
+
+            G1 INTEGER,
+
+            G2 INTEGER,
+
+            schoolsup TEXT,
+
+            famsup TEXT,
+
+            internet TEXT,
+
+            predicted_grade REAL
+
+        )
+    """)
+
+    conn.commit()
+    conn.close()
+
+
+# 2. Save Prediction
+
+def save_prediction(record):
+
+    conn = sqlite3.connect(DB_PATH)
+
+    cursor = conn.cursor()
+
+    cursor.execute("""
+        INSERT INTO predictions (
+            prediction_date,
+            studytime,
+            failures,
+            absences,
+            G1,
+            G2,
+            schoolsup,
+            famsup,
+            internet,
+            predicted_grade
+        )
+
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    """, (
+
+        record["Date & Time"],
+        record["Study Time"],
+        record["Failures"],
+        record["Absences"],
+        record["G1"],
+        record["G2"],
+        record["School Support"],
+        record["Family Support"],
+        record["Internet"],
+        record["Predicted Grade"]
+
+    ))
+
+    conn.commit()
+    conn.close()
+
+
+# 3. Retrieve Prediction History
+
+def get_prediction_history():
+
+    conn = sqlite3.connect(DB_PATH)
+
+    df = pd.read_sql_query(
+        "SELECT * FROM predictions ORDER BY id DESC",
+        conn
+    )
+
+    conn.close()
+
+    return df
+
+
+# 4. Delete Prediction History
+
+def clear_prediction_history():
+
+    conn = sqlite3.connect(DB_PATH)
+
+    cursor = conn.cursor()
+
+    cursor.execute("DELETE FROM predictions")
+
+    conn.commit()
+    conn.close()
+
+
+# Initialize Database
+
+init_database()
+
 
 # --------------------------------
 # PAGE CONFIGURATION
@@ -270,9 +399,7 @@ if page == "Dashboard":
 
             }
 
-            st.session_state.prediction_history.append(
-            history_record
-           )          
+            save_prediction(history_record)        
 
             st.divider()
 
@@ -345,55 +472,63 @@ if page == "Dashboard":
 
 
 # --------------------------------
-# PREDICTION HISTORY
+# DATABASE PREDICTION HISTORY
 # --------------------------------
 
     st.divider()
 
-    st.subheader("📜 Prediction History")
+    st.subheader("🗄️ Prediction History Database")
 
-    if st.session_state.prediction_history:
+    history_df = get_prediction_history()
 
-        history_df = pd.DataFrame(
-            st.session_state.prediction_history
-        )
+    if not history_df.empty:
 
-        # Display History
+        # Display Database Records
 
         st.dataframe(
             history_df,
             use_container_width=True
         )
 
-        # Download CSV Report
+        # Total Predictions
+
+        st.metric(
+            "Total Predictions",
+            len(history_df)
+        )
+
+        # Download CSV
 
         csv_data = history_df.to_csv(
             index=False
         ).encode("utf-8")
 
         st.download_button(
-            label="📥 Download Prediction Report",
+            label="📥 Download Database Report",
             data=csv_data,
             file_name="student_prediction_history.csv",
-            mime="text/csv",
-            use_container_width=True
+            mime="text/csv"
         )
 
-        # Clear History
+        # Clear Database
 
         if st.button(
-            "🗑️ Clear Prediction History"
+            "🗑️ Clear All Prediction Records"
         ):
 
-            st.session_state.prediction_history = []
+            clear_prediction_history()
+
+            st.success(
+                "Prediction history cleared successfully!"
+            )
 
             st.rerun()
 
     else:
 
         st.info(
-            "No prediction history available. "
-            "Make your first student prediction!"
+            "No prediction records found. "
+            "Generate your first prediction!"
         )
 
 
