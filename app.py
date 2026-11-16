@@ -1,3 +1,4 @@
+from datetime import datetime
 import os
 import streamlit as st
 import pandas as pd
@@ -12,6 +13,10 @@ st.set_page_config(
     page_icon="🎓",
     layout="wide"
 )
+# Initialize Prediction History
+
+if "prediction_history" not in st.session_state:
+    st.session_state.prediction_history = []
 
 # --------------------------------
 # CUSTOM CSS
@@ -245,10 +250,29 @@ if page == "Dashboard":
                 student_data
             )
 
-            prediction = max(
-                0,
-                min(20, prediction)
-            )
+    # Save Prediction History
+
+            history_record = {
+
+             "Date & Time": datetime.now().strftime(
+             "%Y-%m-%d %H:%M:%S"
+             ),
+
+            "Study Time": studytime,
+            "Failures": failures,
+            "Absences": absences,
+            "G1": g1,
+            "G2": g2,
+            "School Support": schoolsup,
+            "Family Support": famsup,
+            "Internet": internet,
+            "Predicted Grade": round(prediction, 2)
+
+            }
+
+            st.session_state.prediction_history.append(
+            history_record
+           )          
 
             st.divider()
 
@@ -318,6 +342,59 @@ if page == "Dashboard":
             st.error(
                 f"Prediction failed: {error}"
             )
+
+
+# --------------------------------
+# PREDICTION HISTORY
+# --------------------------------
+
+    st.divider()
+
+    st.subheader("📜 Prediction History")
+
+    if st.session_state.prediction_history:
+
+        history_df = pd.DataFrame(
+            st.session_state.prediction_history
+        )
+
+        # Display History
+
+        st.dataframe(
+            history_df,
+            use_container_width=True
+        )
+
+        # Download CSV Report
+
+        csv_data = history_df.to_csv(
+            index=False
+        ).encode("utf-8")
+
+        st.download_button(
+            label="📥 Download Prediction Report",
+            data=csv_data,
+            file_name="student_prediction_history.csv",
+            mime="text/csv",
+            use_container_width=True
+        )
+
+        # Clear History
+
+        if st.button(
+            "🗑️ Clear Prediction History"
+        ):
+
+            st.session_state.prediction_history = []
+
+            st.rerun()
+
+    else:
+
+        st.info(
+            "No prediction history available. "
+            "Make your first student prediction!"
+        )
 
 
 # --------------------------------
