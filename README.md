@@ -151,3 +151,17 @@ Satrik Mondal
 ## 📄 License
 
 This project is intended for educational purposes.
+
+## 🖥️ Application Screenshots
+
+### Dashboard
+
+![Dashboard](screenshots/dashboard.png)
+
+### Student Performance Prediction
+
+![Prediction](screenshots/prediction.png)
+
+### Model Evaluation
+
+![Model Evaluation](screenshots/evaluation.png)
